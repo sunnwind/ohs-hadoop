@@ -9,6 +9,7 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -19,7 +20,8 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -27,7 +29,7 @@ import org.json.simple.parser.ParseException;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 
-public class HadoopDataHandler {
+public class HadoopDataHandler extends Configured implements Tool {
 
 	public static class MMaper extends Mapper<Object, Text, Text, Text> {
 
@@ -161,17 +163,19 @@ public class HadoopDataHandler {
 
 		String[] otherArgs = new String[0];
 
-		if (otherArgs.length == 0) {
-			otherArgs = new String[2];
-			otherArgs[0] = "/data1/ohs/data/news_ir/sample-1M_subset.jsonl";
-			otherArgs[1] = "/data1/ohs/data/news_ir/sample-1M/";
-		} else {
-			otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-			if (otherArgs.length != 2) {
-				System.err.println("Usage: nlp <in> <out>");
-				System.exit(2);
-			}
-		}
+		int res = ToolRunner.run(conf, new HadoopDataHandler(), args);
+
+		// if (otherArgs.length == 0) {
+		otherArgs = new String[2];
+		// otherArgs[0] = "/data1/ohs/data/news_ir/sample-1M_subset.jsonl";
+		// otherArgs[1] = "/data1/ohs/data/news_ir/sample-1M/";
+		// } else {
+		// otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+		// if (otherArgs.length != 2) {
+		// System.err.println("Usage: nlp <in> <out>");
+		// System.exit(2);
+		// }
+		// }
 
 		// conf.set("fs.defaultFS", "file:///");
 		// conf.set("mapred.job.tracker", "local");
@@ -180,10 +184,14 @@ public class HadoopDataHandler {
 		// "org.apache.hadoop.io.serializer.JavaSerialization,"
 		// + "org.apache.hadoop.io.serializer.WritableSerialization");
 
-		FileSystem fs = FileSystem.get(conf);
-		fs.delete(new Path(otherArgs[1]), true);
+		System.out.println("process ends.");
+	}
 
-		JobConf jb = new JobConf(conf);
+	public int run(String[] args) throws Exception {
+		FileSystem fs = FileSystem.get(getConf());
+		fs.delete(new Path(args[1]), true);
+
+		JobConf jb = new JobConf(getConf());
 		Job job = Job.getInstance(jb);
 		job.setJobName("nlp");
 		job.setJarByClass(HadoopDataHandler.class);
@@ -191,13 +199,12 @@ public class HadoopDataHandler {
 		job.setReducerClass(RReducer.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
-		FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
-		FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
+		FileInputFormat.addInputPath(job, new Path(args[0]));
+		FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
 		// deleteFilesUnder(otherArgs[1]);
 
 		System.exit(job.waitForCompletion(true) ? 0 : 1);
-
-		System.out.println("process ends.");
+		return 0;
 	}
 }
