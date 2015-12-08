@@ -199,6 +199,10 @@ public class HadoopDataHandler extends Configured implements Tool {
 		job.setReducerClass(RReducer.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
+		
+		System.out.printf("input:\t%s\n", args[0]);
+		System.out.printf("output:\t%s\n", args[0]);
+		
 		FileInputFormat.addInputPath(job, new Path(args[0]));
 		FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
